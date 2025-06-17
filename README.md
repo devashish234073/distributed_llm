@@ -1,5 +1,9 @@
 # distributed_llm
 
+Refer this linked post for some of the details:  https://www.linkedin.com/posts/devashish-priyadarshi-96554112b_created-a-simple-nodejs-architecture-that-activity-7340821216921849856--V2x?utm_source=share&utm_medium=member_desktop&rcm=ACoAAB_v_B0B3953zoesstM-BJmeuZA94BtFpDI
+
+And see this video for demo:  https://www.youtube.com/watch?v=hn84uuF8B6k
+
 This is an llm interface application to run query against llm models running locally using ollama.
 
 This is the architecture diagram of the process:
