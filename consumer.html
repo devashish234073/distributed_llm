@@ -164,6 +164,8 @@
 </head>
 
 <body>
+    <h4>Host</h4>
+    <input type="text" id="host" value="localhost">
     <h1>Prompt</h1>
     <textarea id="queryInput" rows="4" cols="50" placeholder="Enter your query"></textarea>
     <br>
@@ -175,6 +177,7 @@
         function $(selector) {
             return document.querySelector(selector);
         }
+        let host = $("#host");
         const overlay = $('#overlay');
         const queryInput = $('#queryInput');
         const submitBtn = $('#submitBtn');
@@ -189,7 +192,7 @@
 
             try {
                 // Step 1: Submit query to master server
-                const response = await fetch('http://localhost:3000/query', {
+                const response = await fetch(`http://${host.value}:3000/query`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -205,7 +208,7 @@
                     overlay.classList.remove('yellow');
                     overlay.classList.add('blue');
 
-                    const resultResponse = await fetch(`http://localhost:3000/is_query_result_available?transactionId=${transactionId}`);
+                    const resultResponse = await fetch(`http://${host.value}:3000/is_query_result_available?transactionId=${transactionId}`);
                     const resultData = await resultResponse.json();
 
                     overlay.classList.remove('blue');
