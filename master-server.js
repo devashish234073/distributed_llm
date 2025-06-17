@@ -1,6 +1,7 @@
 const http = require('http');
 const url = require('url');
 const querystring = require('querystring');
+const fs = require('fs');
 
 // In-memory storage
 const queryQueue = [];
@@ -11,6 +12,9 @@ const server = http.createServer((req, res) => {
     const parsedUrl = url.parse(req.url);
     const path = parsedUrl.pathname;
     const query = querystring.parse(parsedUrl.query);
+
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    console.log(`Incoming request from IP: ${ip} for path: ${path}`);
 
     // Set CORS headers for all responses
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -39,7 +43,7 @@ const server = http.createServer((req, res) => {
 
                 const transactionId = `txn_${transactionCounter++}`;
                 queryQueue.push({ transactionId, query: userQuery });
-                
+
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ transactionId }));
             } catch (e) {
@@ -100,6 +104,18 @@ const server = http.createServer((req, res) => {
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ available: false }));
         }
+    } else if (req.method === 'GET' && path === '/') {
+        console.log('Serving consumer.html');
+        fs.readFile('consumer.html', (err, data) => {
+            if (err) {
+                console.error('Error reading consumer.html:', err);
+                res.writeHead(500, { 'Content-Type': 'text/plain' });
+                res.end('Internal Server Error');
+            } else {
+                res.writeHead(200, { 'Content-Type': 'text/html' });
+                res.end(data);
+            }
+        });
     } else {
         res.writeHead(404, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Not found' }));
