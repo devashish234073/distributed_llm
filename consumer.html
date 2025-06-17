@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Query Consumer</title>
+    <style>
+        * {
+            outline: none;
+        }
+        :root {
+            --primary-color: #4361ee;
+            --primary-hover: #3a56d4;
+            --text-color: #2b2d42;
+            --bg-color: #a8a9ff;
+            --overlay-bg: rgba(0, 0, 0, 0.7);
+            --success-color: #4cc9f0;
+            --warning-color: #f8961e;
+            --error-color: #f94144;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            margin: 0;
+            padding: 2rem;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 2rem;
+            font-weight: 600;
+        }
+
+        #queryInput {
+            width: 100%;
+            padding: 1rem;
+            font-size: 1rem;
+            border: 2px solid #e9ecef;
+            border-radius: var(--border-radius);
+            resize: vertical;
+            min-height: 120px;
+            margin-bottom: 1rem;
+            transition: var(--transition);
+            box-shadow: var(--box-shadow);
+        }
+
+        #queryInput:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+        }
+
+        #submitBtn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            font-size: 1rem;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: var(--box-shadow);
+            display: block;
+            margin: 0 auto 2rem;
+        }
+
+        #submitBtn:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-2px);
+        }
+
+        #submitBtn:active {
+            transform: translateY(0);
+        }
+
+        #response {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            width: 100%;
+            border-radius: var(--border-radius);
+            background-color: white;
+            border: 1px solid #e9ecef;
+            min-height: 150px;
+            box-shadow: var(--box-shadow);
+            white-space: pre-wrap;
+            font-family: 'Consolas', 'Monaco', monospace;
+            line-height: 1.5;
+            overflow-wrap: break-word;
+        }
+
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5rem;
+            font-weight: 600;
+            display: none;
+            background-color: var(--overlay-bg);
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .yellow {
+            color: #ffd60a;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .blue {
+            color: #4cc9f0;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--primary-color);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            #queryInput {
+                min-height: 100px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Prompt</h1>
+    <textarea id="queryInput" rows="4" cols="50" placeholder="Enter your query"></textarea>
+    <br>
+    <button id="submitBtn">Submit Query</button>
+    <textarea rows="4" cols="50" id="response" readonly></textarea>
+    <div id="overlay" class="yellow">Please wait...</div>
+
+    <script>
+        function $(selector) {
+            return document.querySelector(selector);
+        }
+        const overlay = $('#overlay');
+        const queryInput = $('#queryInput');
+        const submitBtn = $('#submitBtn');
+        const responseDiv = $('#response');
+
+        submitBtn.addEventListener('click', async () => {
+            const query = queryInput.value.trim();
+            if (!query) return;
+
+            overlay.style.display = 'flex';
+            responseDiv.textContent = '';
+
+            try {
+                // Step 1: Submit query to master server
+                const response = await fetch('http://localhost:3000/query', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ query })
+                });
+
+                const data = await response.json();
+                const transactionId = data.transactionId;
+
+                // Step 2: Poll for result availability
+                const checkResult = async () => {
+                    overlay.classList.remove('yellow');
+                    overlay.classList.add('blue');
+
+                    const resultResponse = await fetch(`http://localhost:3000/is_query_result_available?transactionId=${transactionId}`);
+                    const resultData = await resultResponse.json();
+
+                    overlay.classList.remove('blue');
+                    overlay.classList.add('yellow');
+
+                    if (resultData.available) {
+                        overlay.style.display = 'none';
+                        responseDiv.textContent = resultData.response;
+                    } else {
+                        setTimeout(checkResult, 1000); // Poll every second
+                    }
+                };
+
+                checkResult();
+            } catch (error) {
+                overlay.style.display = 'none';
+                responseDiv.textContent = `Error: ${error.message}`;
+            }
+        });
+    </script>
+</body>
+
+</html>
