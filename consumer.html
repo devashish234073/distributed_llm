@@ -185,6 +185,11 @@
             return document.querySelector(selector);
         }
         let host = $("#host");
+        if(window.location.host.indexOf(":")>-1) {
+            let currentHost = window.location.host.split(":")[0];
+            console.log("setting host to: " + currentHost);
+            host.value = currentHost;
+        }
         const overlay = $('#overlay');
         const queryInput = $('#queryInput');
         const submitBtn = $('#submitBtn');
