@@ -37,6 +37,7 @@
                     "node -v\n",
                     "git clone https://github.com/devashish234073/distributed_llm\n",
                     "cd distributed_llm\n",
+                    "git checkout using_web_sockets\n",
                     "node master-server.js&\n"
                   ]
                 ]
