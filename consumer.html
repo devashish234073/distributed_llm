@@ -7,6 +7,7 @@
         * {
             outline: none;
         }
+
         :root {
             --primary-color: #4361ee;
             --primary-hover: #3a56d4;
@@ -185,7 +186,7 @@
             return document.querySelector(selector);
         }
         let host = $("#host");
-        if(window.location.host.indexOf(":")>-1) {
+        if (window.location.host.indexOf(":") > -1) {
             let currentHost = window.location.host.split(":")[0];
             console.log("setting host to: " + currentHost);
             host.value = currentHost;
@@ -201,6 +202,7 @@
 
             overlay.style.display = 'flex';
             responseDiv.textContent = '';
+            let ws = null;
 
             try {
                 // Step 1: Submit query to master server
@@ -214,30 +216,34 @@
 
                 const data = await response.json();
                 const transactionId = data.transactionId;
+                console.log("got this txnId", transactionId);
 
-                // Step 2: Poll for result availability
-                const checkResult = async () => {
-                    overlay.classList.remove('yellow');
-                    overlay.classList.add('blue');
-
-                    const resultResponse = await fetch(`http://${host.value}:3000/is_query_result_available?transactionId=${transactionId}`);
-                    const resultData = await resultResponse.json();
-
-                    overlay.classList.remove('blue');
-                    overlay.classList.add('yellow');
-
-                    if (resultData.available) {
+                ws = new WebSocket(`ws://${host.value}:3000`);
+                ws.onmessage = (msg) => {
+                    const data = JSON.parse(msg.data);
+                    if (data.transactionId === transactionId) {
                         overlay.style.display = 'none';
-                        responseDiv.textContent = resultData.response;
-                    } else {
-                        setTimeout(checkResult, 1000); // Poll every second
+                        responseDiv.textContent = data.response;
                     }
                 };
 
-                checkResult();
+                ws.onerror = (err) => {
+                    console.error("WebSocket error", err);
+                    if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+                        ws.close();
+                    }
+                };
+
+                ws.onopen = () => {
+                    ws.send(JSON.stringify({ transactionId }));
+                };
             } catch (error) {
                 overlay.style.display = 'none';
                 responseDiv.textContent = `Error: ${error.message}`;
+            } finally {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.close();
+                }
             }
         });
     </script>

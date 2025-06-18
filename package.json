@@ -1,0 +1,15 @@
+{
+  "name": "distributed_llm",
+  "version": "1.0.0",
+  "description": "Refer this linked post for some of the details:  https://www.linkedin.com/posts/devashish-priyadarshi-96554112b_created-a-simple-nodejs-architecture-that-activity-7340821216921849856--V2x?utm_source=share&utm_medium=member_desktop&rcm=ACoAAB_v_B0B3953zoesstM-BJmeuZA94BtFpDI",
+  "main": "master-server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "ws": "^8.18.2"
+  }
+}

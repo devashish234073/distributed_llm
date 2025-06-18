@@ -1,4 +1,5 @@
 const http = require('http');
+const WebSocket = require('ws');
 const url = require('url');
 const querystring = require('querystring');
 const fs = require('fs');
@@ -6,6 +7,7 @@ const fs = require('fs');
 // In-memory storage
 const queryQueue = [];
 const results = new Map();
+const clients = new Map();
 let transactionCounter = 1;
 
 const server = http.createServer((req, res) => {
@@ -78,32 +80,20 @@ const server = http.createServer((req, res) => {
 
                 results.set(transactionId, response);
                 console.log(`Response for ${transactionId} received and stored.`);
-                res.writeHead(200, { 'Content-Type': 'application/json' });
+
+                // Notify the WebSocket client
+                const ws = clients.get(transactionId);
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ transactionId, response }));
+                    clients.delete(transactionId); // Optional: cleanup
+                }
+                res.writeHead(200);
                 res.end(JSON.stringify({ success: true }));
-            } catch (e) {
-                console.error('Error parsing response:', e);
-                console.error('Body received:', body);
-                res.writeHead(400, { 'Content-Type': 'application/json' });
+            } catch {
+                res.writeHead(400);
                 res.end(JSON.stringify({ error: 'Invalid JSON' }));
             }
         });
-    } else if (path === '/is_query_result_available' && req.method === 'GET') {
-        const { transactionId } = query;
-        if (!transactionId) {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'Transaction ID is required' }));
-            return;
-        }
-
-        if (results.has(transactionId)) {
-            const response = results.get(transactionId);
-            results.delete(transactionId); // Remove after retrieval if you want one-time access
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ available: true, response }));
-        } else {
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ available: false }));
-        }
     } else if (req.method === 'GET' && path === '/') {
         console.log('Serving consumer.html');
         fs.readFile('consumer.html', (err, data) => {
@@ -122,7 +112,18 @@ const server = http.createServer((req, res) => {
     }
 });
 
+// Setup WebSocket server
+const wss = new WebSocket.Server({ server });
+wss.on('connection', ws => {
+  ws.on('message', message => {
+    const { transactionId } = JSON.parse(message);
+    if (transactionId) {
+      clients.set(transactionId, ws);
+    }
+  });
+});
+
 const PORT = 3000;
 server.listen(PORT, () => {
-    console.log(`Master server running on port ${PORT}`);
+    console.log(`Master server running on http://localhost:${PORT}`);
 });
